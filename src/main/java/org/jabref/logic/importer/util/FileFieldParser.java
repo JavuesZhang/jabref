@@ -6,6 +6,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jabref.model.entry.LinkedFile;
 
@@ -58,7 +59,8 @@ public class FileFieldParser {
             linkedFileData.add(sb.toString());
         }
         if (!linkedFileData.isEmpty()) {
-            files.add(convert(linkedFileData));
+//            files.add(convert(linkedFileData));
+            Optional.ofNullable(convert(linkedFileData)).ifPresent(files::add);
         }
         return files;
     }
@@ -87,30 +89,44 @@ public class FileFieldParser {
             }
         }
 
-        if (field == null) {
-            String pathStr = entry.get(1);
-            if (pathStr.contains("//")) {
-                // In case the path contains //, we assume it is a malformed URL, not a malformed path.
-                // On linux, the double slash would be converted to a single slash.
-                field = new LinkedFile(entry.get(0), pathStr, entry.get(2));
-            } else {
-                try {
-                    // there is no Path.isValidPath(String) method
-                    Path path = Path.of(pathStr);
-                    field = new LinkedFile(entry.get(0), path, entry.get(2));
-                } catch (InvalidPathException e) {
-                    field = new LinkedFile(entry.get(0), pathStr, entry.get(2));
-                }
+//        if (field == null) {
+//            String pathStr = entry.get(1);
+//            if (pathStr.contains("//")) {
+//                // In case the path contains //, we assume it is a malformed URL, not a malformed path.
+//                // On linux, the double slash would be converted to a single slash.
+//                field = new LinkedFile(entry.get(0), pathStr, entry.get(2));
+//            } else {
+//                try {
+//                    // there is no Path.isValidPath(String) method
+//                    Path path = Path.of(pathStr);
+//                    field = new LinkedFile(entry.get(0), path, entry.get(2));
+//                } catch (InvalidPathException e) {
+//                    field = new LinkedFile(entry.get(0), pathStr, entry.get(2));
+//                }
+//            }
+//        }
+        try {
+            if (field == null) {
+                field = new LinkedFile(entry.get(0), Path.of(entry.get(1)), entry.get(2));
             }
+            // link is only mandatory field
+            if (field.getDescription().isEmpty() && field.getLink().isEmpty() && !field.getFileType().isEmpty()) {
+                field = new LinkedFile("", Path.of(field.getFileType()), "");
+            } else if (!field.getDescription().isEmpty() && field.getLink().isEmpty() && field.getFileType().isEmpty()) {
+                field = new LinkedFile("", Path.of(field.getDescription()), "");
+            }
+            entry.clear();
+        } catch (InvalidPathException ignored) {
+            // ignored
         }
 
-        // link is the only mandatory field
-        if (field.getDescription().isEmpty() && field.getLink().isEmpty() && !field.getFileType().isEmpty()) {
-            field = new LinkedFile("", Path.of(field.getFileType()), "");
-        } else if (!field.getDescription().isEmpty() && field.getLink().isEmpty() && field.getFileType().isEmpty()) {
-            field = new LinkedFile("", Path.of(field.getDescription()), "");
-        }
-        entry.clear();
+//        // link is the only mandatory field
+//        if (field.getDescription().isEmpty() && field.getLink().isEmpty() && !field.getFileType().isEmpty()) {
+//            field = new LinkedFile("", Path.of(field.getFileType()), "");
+//        } else if (!field.getDescription().isEmpty() && field.getLink().isEmpty() && field.getFileType().isEmpty()) {
+//            field = new LinkedFile("", Path.of(field.getDescription()), "");
+//        }
+//        entry.clear();
         return field;
     }
 }

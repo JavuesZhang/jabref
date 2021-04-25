@@ -24,7 +24,7 @@ class FileFieldParserTest {
                         List.of("arXiv Fulltext PDF", "https://arxiv.org/pdf/1109.0517.pdf", "application/pdf")
                 ),
                 Arguments.of(
-                        new LinkedFile("arXiv Fulltext PDF", "https/://arxiv.org/pdf/1109.0517.pdf", "application/pdf"),
+                        null,
                         List.of("arXiv Fulltext PDF", "https\\://arxiv.org/pdf/1109.0517.pdf", "application/pdf")
                 )
         );
@@ -65,7 +65,7 @@ class FileFieldParserTest {
 
                 // parseFaultyOnlineInput
                 Arguments.of(
-                        Collections.singletonList(new LinkedFile("", "htt://arxiv.org/pdf/2010.08497v1", "PDF")),
+                        Collections.emptyList(),
                         ":htt\\://arxiv.org/pdf/2010.08497v1:PDF"
                 ),
 
@@ -143,6 +143,26 @@ class FileFieldParserTest {
     @ParameterizedTest
     @MethodSource("stringsToParseTestData")
     public void testParse(List<LinkedFile> expected, String input) {
+        assertEquals(expected, FileFieldParser.parse(input));
+    }
+
+    private static Stream<Arguments> stringsToParseTestDataWithIncorrectUrl() throws Exception {
+        return Stream.of(
+                // handleEscapedFilePath
+                Arguments.of(
+                        Collections.emptyList(),
+                        ":C$\\:User/someone/somefile.pdf:PDF"
+                ),
+                Arguments.of(
+                        Collections.emptyList(),
+                        "Paper:file\\:///D\\:\\\\Books\\\\Publications\\\\ch33%20favre.pdf:PDF"
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("stringsToParseTestDataWithIncorrectUrl")
+    public void testParseWithIncorrectUrl(List<LinkedFile> expected, String input) {
         assertEquals(expected, FileFieldParser.parse(input));
     }
 }
